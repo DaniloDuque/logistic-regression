@@ -23,9 +23,9 @@ def plot_results(model, X: torch.Tensor, y: torch.Tensor, errors: list, title: s
     # --- Training error curve ---
     ax1 = fig.add_subplot(gs[0])
     ax1.plot(errors, color='steelblue', linewidth=1.5)
-    ax1.set_xlabel('Iteration')
+    ax1.set_xlabel('Iteración')
     ax1.set_ylabel('MAE')
-    ax1.set_title('Training error curve')
+    ax1.set_title('Curva de error de entrenamiento')
     ax1.grid(True, alpha=0.3)
 
     # --- Decision boundary ---
@@ -55,10 +55,10 @@ def plot_results(model, X: torch.Tensor, y: torch.Tensor, errors: list, title: s
     ax2.contour(xx, yy, Z, levels=[0.5], colors='black', linewidths=1.5)
     scatter = ax2.scatter(x1_vals, x2_vals, c=labels,
                           cmap='RdBu', edgecolors='k', linewidths=0.5, s=40)
-    ax2.set_xlabel('Feature 1')
-    ax2.set_ylabel('Feature 2')
-    ax2.set_title('Data + Decision boundary')
-    plt.colorbar(scatter, ax=ax2, label='Class')
+    ax2.set_xlabel('Característica 1')
+    ax2.set_ylabel('Característica 2')
+    ax2.set_title('Datos + Frontera de decisión')
+    plt.colorbar(scatter, ax=ax2, label='Clase')
 
     plt.tight_layout()
     plt.show()

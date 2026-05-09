@@ -25,19 +25,18 @@ def print_mae_table(label: str, mae_train: float, mae_test: float):
     Prints a formatted single-row MAE result table.
     """
     print("=" * 55)
-    print(f"{'Case':<30} {'MAE Train':>10} {'MAE Test':>10}")
+    print(f"{'Caso':<30} {'MAE Entren.':>10} {'MAE Prueba':>10}")
     print("-" * 55)
     print(f"{label:<30} {mae_train:>10.4f} {mae_test:>10.4f}")
     print("=" * 55)
-
 
 def print_runs_table(mae_separable: list, mae_nonseparable: list):
     """
     Prints a formatted table with mean and std for 10 runs.
     """
     print("=" * 55)
-    print(f"{'Case':<30} {'Mean MAE':>10} {'Std Dev':>10}")
+    print(f"{'Caso':<30} {'MAE Medio':>10} {'Desv. Típ.':>10}")
     print("-" * 55)
-    print(f"{'Linearly separable':<30} {np.mean(mae_separable):>10.4f} {np.std(mae_separable):>10.4f}")
-    print(f"{'Non-linearly separable':<30} {np.mean(mae_nonseparable):>10.4f} {np.std(mae_nonseparable):>10.4f}")
+    print(f"{'Linealmente separable':<30} {np.mean(mae_separable):>10.4f} {np.std(mae_separable):>10.4f}")
+    print(f"{'No linealmente separable':<30} {np.mean(mae_nonseparable):>10.4f} {np.std(mae_nonseparable):>10.4f}")
     print("=" * 55)
