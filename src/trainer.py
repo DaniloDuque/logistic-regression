@@ -1,20 +1,23 @@
 import torch
 
-def train_with_history(model, X_train, y_train, steps: int = 1000, alpha: float = 0.1) -> list:
+
+def train_with_history(model, X_train, y_train, X_test, y_test, steps: int = 1000, alpha: float = 0.1) -> tuple:
     """
-    Trains the model step by step and records the MAE at each iteration.
-    Returns a list of errors to plot the training curve.
+    Entrena el modelo paso a paso y registra el MAE en cada iteración
+    para los conjuntos de entrenamiento y prueba.
+    Devuelve una tupla (train_errors, test_errors) para graficar la curva de aprendizaje.
     """
-    errors = []
+    train_errors, test_errors = [], []
     for _ in range(steps):
         model.train(X_train, y_train, steps=1, alpha=alpha)
-        y_pred = model.forward(X_train)
-        errors.append(compute_mae(y_train, y_pred))
-    return errors
+        train_errors.append(compute_mae(y_train, model.forward(X_train)))
+        test_errors.append(compute_mae(y_test,  model.forward(X_test)))
+    return train_errors, test_errors
+
 
 def compute_mae(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
     """
-    Computes the Mean Absolute Error:
+    Calcula el Error Absoluto Medio:
         eMAE = (1/N) * sum|t_i - t̂_i|
     """
     return torch.mean(torch.abs(y_true - y_pred)).item()

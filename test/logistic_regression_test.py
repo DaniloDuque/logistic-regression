@@ -15,19 +15,19 @@ class TestLogisticRegression(unittest.TestCase):
             sigmoidal en lugar de sign() como el perceptrón.
 
         Entradas:
-            X = [[1, 35, 50],
-                 [1, 40, 53],
-                 [1, 25, 80],
-                 [1, 28, 73]]
+            X = [[1, 1, 2],
+                 [1, -1, 3],
+                 [1, 2, -1],
+                 [1, -2, -3]]
             w = [[0.3], [0.2], [0.25]]
 
         Salidas esperadas:
             Todos los valores y = sigmoid(X @ w) deben cumplir 0 < y < 1.
         """
-        X = torch.tensor([[1, 35.0, 50],
-                          [1, 40.0, 53],
-                          [1, 25.0, 80],
-                          [1, 28.0, 73]])
+        X = torch.tensor([[1,  1.0,  2.0],
+                          [1, -1.0,  3.0],
+                          [1,  2.0, -1.0],
+                          [1, -2.0, -3.0]])
         w = torch.tensor([[0.3], [0.2], [0.25]])
         model = LogisticRegression(w)
 
@@ -52,7 +52,7 @@ class TestLogisticRegression(unittest.TestCase):
 
         Entradas:
             X = [[1]]   (muestra con una sola característica)
-            w = [[0]]   → z = 0  → sigmoid(0) = 0.5  (esperado)
+            w = [[0]]   → z = 0   → sigmoid(0) = 0.5  (esperado)
             w = [[100]] → z = 100 → sigmoid(100) ≈ 1  (esperado)
             w = [[-100]] → z = -100 → sigmoid(-100) ≈ 0 (esperado)
 
@@ -117,7 +117,7 @@ class TestLogisticRegression(unittest.TestCase):
         """
         Objetivo:
             Verificar que train() mejora (o mantiene) la precisión del
-            modelo tras el entrenamiento, lo que valida que el descenso
+            modelo tras el entrenamiento, lo que valida que el ascenso
             de gradiente sobre la log-verosimilitud funciona correctamente.
 
         Entradas:
