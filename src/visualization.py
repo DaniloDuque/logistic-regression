@@ -2,10 +2,12 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+from utils.svg_export import save_svg
 
 
 def plot_results(model, X: torch.Tensor, y: torch.Tensor,
-                 train_errors: list, test_errors: list, title: str):
+                 train_errors: list, test_errors: list, title: str,
+                 svg_path: str = None):
     """
     Genera una figura con 2 subgráficas:
       - Izquierda: curvas de error de entrenamiento Y prueba (MAE por iteración)
@@ -17,6 +19,8 @@ def plot_results(model, X: torch.Tensor, y: torch.Tensor,
       3. Ejecutar model.predict() sobre cada punto de la malla
       4. Reformar las predicciones a la forma de la malla
       5. Usar contourf para sombrear cada región y contour para dibujar la línea frontera
+
+    Si se indica svg_path, guarda la figura como SVG en esa ruta.
     """
     fig = plt.figure(figsize=(14, 5))
     fig.suptitle(title, fontsize=14, fontweight='bold')
@@ -65,4 +69,8 @@ def plot_results(model, X: torch.Tensor, y: torch.Tensor,
     plt.colorbar(scatter, ax=ax2, label='Clase')
 
     plt.tight_layout()
+
+    if svg_path:
+        save_svg(fig, svg_path)
+
     plt.show()

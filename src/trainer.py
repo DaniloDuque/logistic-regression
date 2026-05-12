@@ -1,6 +1,5 @@
 import torch
 
-
 def train_with_history(model, X_train, y_train, X_test, y_test, steps: int = 1000, alpha: float = 0.1) -> tuple:
     """
     Entrena el modelo paso a paso y registra el MAE en cada iteración
@@ -13,7 +12,6 @@ def train_with_history(model, X_train, y_train, X_test, y_test, steps: int = 100
         train_errors.append(compute_mae(y_train, model.forward(X_train)))
         test_errors.append(compute_mae(y_test,  model.forward(X_test)))
     return train_errors, test_errors
-
 
 def compute_mae(y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
     """
