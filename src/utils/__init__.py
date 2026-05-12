@@ -1,1 +1,1 @@
-from .svg_export import fig_to_svg, save_svg, fig_to_svg_base64
+from .svg_export import fig_to_svg, save_svg, fig_to_svg_base64, fig_to_pdf, save_pdf
