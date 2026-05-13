@@ -1,5 +1,17 @@
 from transformers import pipeline
 import numpy as np
+from transformers.pipelines.pt_utils import KeyDataset
+from torch.utils.data import Dataset as TorchDataset
+
+
+class TextDataset(TorchDataset):
+    def __init__(self, texts):
+        self.texts = texts
+    def __len__(self):
+        return len(self.texts)
+    def __getitem__(self, i):
+        return self.texts[i]
+    
 
 MODELS = {
     "selectra": {
@@ -35,21 +47,22 @@ def load_classifiers(model_keys=None, device=None):
 
 def classify_batch(classifier, texts, labels, template, batch_size=32):
     """
-    Clasifica una lista de textos en lotes.
+    Clasifica una lista de textos usando un Dataset para eficiencia en GPU.
     Retorna array de enteros: 0 = primer label, 1 = segundo label.
     """
+    dataset = TextDataset(texts)
     preds = []
-    for i in range(0, len(texts), batch_size):
-        batch = texts[i : i + batch_size]
-        results = classifier(
-            batch,
-            candidate_labels=labels,
-            hypothesis_template=template
-        )
-        for r in results:
-            preds.append(0 if r["labels"][0] == labels[0] else 1)
+
+    for i, result in enumerate(classifier(
+        dataset,
+        candidate_labels=labels,
+        hypothesis_template=template,
+        batch_size=batch_size
+    )):
+        preds.append(0 if result["labels"][0] == labels[0] else 1)
         if i % 500 == 0:
             print(f"  {i}/{len(texts)} procesados...")
+
     return np.array(preds)
 
 
