@@ -15,7 +15,7 @@ MODELS = {
 }
 
 
-def load_classifiers(model_keys=None):
+def load_classifiers(model_keys=None, device=None):
     """
     Carga y retorna un dict {key: pipeline} para los modelos indicados.
     Si model_keys es None, carga todos los definidos en MODELS.
@@ -27,7 +27,8 @@ def load_classifiers(model_keys=None):
         print(f"Cargando {key} ({cfg['model_id']})...")
         classifiers[key] = pipeline(
             "zero-shot-classification",
-            model=cfg["model_id"]
+            model=cfg["model_id"],
+            device=device,
         )
     return classifiers
 

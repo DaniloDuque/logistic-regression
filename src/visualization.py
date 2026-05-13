@@ -7,7 +7,7 @@ from utils.svg_export import save_pdf
 
 def plot_results(model, X: torch.Tensor, y: torch.Tensor,
                  train_errors: list, test_errors: list, title: str,
-                 output_path: str = None):
+                 output_path: str = None, device=None):
     """
     Genera una figura con 2 subgráficas:
       - Izquierda: curvas de error de entrenamiento Y prueba (MAE por iteración)
@@ -40,9 +40,9 @@ def plot_results(model, X: torch.Tensor, y: torch.Tensor,
     ax2 = fig.add_subplot(gs[1])
 
     # X[:, 0] es el bias, X[:, 1] y X[:, 2] son las características
-    x1_vals = X[:, 1].numpy()
-    x2_vals = X[:, 2].numpy()
-    labels  = y.squeeze().numpy()
+    x1_vals = X[:, 1].cpu().numpy()
+    x2_vals = X[:, 2].cpu().numpy()
+    labels  = y.squeeze().cpu().numpy()
 
     # Paso 1: crear malla
     margin = 1.0
@@ -53,10 +53,10 @@ def plot_results(model, X: torch.Tensor, y: torch.Tensor,
 
     # Paso 2: agregar columna de bias
     grid = np.c_[np.ones(xx.ravel().shape[0]), xx.ravel(), yy.ravel()]
-    grid_tensor = torch.tensor(grid, dtype=torch.float32)
+    grid_tensor = torch.tensor(grid, dtype=torch.float32, device=device)
 
     # Pasos 3 y 4: predecir y reformar
-    Z = model.predict(grid_tensor).numpy().reshape(xx.shape)
+    Z = model.predict(grid_tensor).cpu().numpy().reshape(xx.shape)
 
     # Paso 5: graficar
     ax2.contourf(xx, yy, Z, alpha=0.25, cmap='RdBu')

@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.datasets import make_blobs
 from sklearn.model_selection import train_test_split
 
-def generate_data(separable=True, n_samples=500, random_state=42):
+def generate_data(separable=True, n_samples=500, random_state=42, device=None):
     std = 1.0 if separable else 4.0
     X, y = make_blobs(n_samples=n_samples, centers=2, 
                       cluster_std=std, random_state=random_state)
@@ -16,8 +16,8 @@ def generate_data(separable=True, n_samples=500, random_state=42):
     )
     
     # Convertir a tensores
-    X_train = torch.tensor(X_train, dtype=torch.float32)
-    X_test  = torch.tensor(X_test,  dtype=torch.float32)
-    y_train = torch.tensor(y_train, dtype=torch.float32).unsqueeze(1)
-    y_test  = torch.tensor(y_test,  dtype=torch.float32).unsqueeze(1)
+    X_train = torch.tensor(X_train, dtype=torch.float32, device=device)
+    X_test  = torch.tensor(X_test,  dtype=torch.float32, device=device)
+    y_train = torch.tensor(y_train, dtype=torch.float32, device=device).unsqueeze(1)
+    y_test  = torch.tensor(y_test,  dtype=torch.float32, device=device).unsqueeze(1)
     return X_train, X_test, y_train, y_test

@@ -11,7 +11,8 @@ def compute_accuracy(model, X: torch.Tensor, y: torch.Tensor) -> float:
     """
     return accuracy_score(y.cpu(), model.predict(X).cpu())
 
-def run_experiment(separable: bool, steps: int = 1000, alpha: float = 0.1) -> dict:
+def run_experiment(separable: bool, steps: int = 1000, alpha: float = 0.1,
+                   device=None) -> dict:
     """
     Ejecuta 10 ensayos independientes con datos generados aleatoriamente cada vez.
     Devuelve un dict con listas de valores de MAE y precisión sobre el conjunto de prueba.
@@ -19,9 +20,9 @@ def run_experiment(separable: bool, steps: int = 1000, alpha: float = 0.1) -> di
     mae_scores, acc_scores = [], []
     for seed in range(10):
         X_train, X_test, y_train, y_test = generate_data(
-            separable=separable, n_samples=500, random_state=seed
+            separable=separable, n_samples=500, random_state=seed, device=device
         )
-        w = torch.zeros(X_train.shape[1], 1)
+        w = torch.zeros(X_train.shape[1], 1, device=device)
         model = LogisticRegression(w)
         model.train(X_train, y_train, steps=steps, alpha=alpha)
         mae_scores.append(compute_mae(y_test, model.forward(X_test)))
