@@ -60,7 +60,7 @@ def classify_batch(classifier, texts, labels, template, batch_size=32):
         batch_size=batch_size
     )):
         preds.append(0 if result["labels"][0] == labels[0] else 1)
-        if i % 500 == 0:
+        if i % 5000 == 0:
             print(f"  {i}/{len(texts)} procesados...")
 
     return np.array(preds)
