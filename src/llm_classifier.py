@@ -1,16 +1,7 @@
 from transformers import pipeline
 import numpy as np
 from transformers.pipelines.pt_utils import KeyDataset
-from torch.utils.data import Dataset as TorchDataset
-
-
-class TextDataset(TorchDataset):
-    def __init__(self, texts):
-        self.texts = texts
-    def __len__(self):
-        return len(self.texts)
-    def __getitem__(self, i):
-        return self.texts[i]
+from text_dataset import TextDataset
     
 
 MODELS = {
