@@ -5,24 +5,35 @@ from sklearn.model_selection import train_test_split
 from scipy.stats import friedmanchisquare
 
 from logistic_regression import LogisticRegression
-from llm_classifier import classify_batch, load_classifiers, MODELS as ZERO_MODELS
+from llm_classifier import classify_batch, load_classifiers
 from few_shot_classifier import classify_few_shot_batch, load_few_shot_classifiers
 
 TREATMENTS = [
     "TF-IDF + LogReg",
     "BERT + LogReg",
     "RoBERTa + LogReg",
-    "Selectra (zero-shot)",
-    "BART (zero-shot)",
-    "Selectra 1-shot",
-    "Selectra 3-shot",
-    "Selectra 5-shot",
+    "Gemma (zero-shot)",
+    "Qwen (zero-shot)",
+    "Gemma 1-shot",
+    "Gemma 3-shot",
+    "Gemma 5-shot",
+    "Qwen 1-shot",
+    "Qwen 3-shot",
+    "Qwen 5-shot",
+]
+
+_ZERO_SHOT_KEYS = [
+    ("gemma-2b-it",  "Gemma (zero-shot)"),
+    ("qwen2.5-1.5b", "Qwen (zero-shot)"),
 ]
 
 _FEWSHOT_CONFIGS = [
-    ("1shot", "Selectra 1-shot"),
-    ("3shot", "Selectra 3-shot"),
-    ("5shot", "Selectra 5-shot"),
+    ("gemma-2b-it",  "1shot", "Gemma 1-shot"),
+    ("gemma-2b-it",  "3shot", "Gemma 3-shot"),
+    ("gemma-2b-it",  "5shot", "Gemma 5-shot"),
+    ("qwen2.5-1.5b", "1shot", "Qwen 1-shot"),
+    ("qwen2.5-1.5b", "3shot", "Qwen 3-shot"),
+    ("qwen2.5-1.5b", "5shot", "Qwen 5-shot"),
 ]
 
 
@@ -51,42 +62,38 @@ def run_30_corridas(all_texts, all_labels, X_tfidf, emb_bert, emb_roberta,
 
     for run in range(n_runs):
         print(f"── Corrida {run + 1}/{n_runs} ──")
-        idx_train, idx_test = train_test_split(idx, test_size=test_size, random_state=run)
-        y_train, y_test     = y_all[idx_train], y_all[idx_test]
-        texts_test          = [all_texts[i] for i in idx_test]
+        idx_train, idx_test = train_test_split(
+            idx, test_size=test_size, random_state=run
+        )
+        y_train, y_test = y_all[idx_train], y_all[idx_test]
+        texts_test      = [all_texts[i] for i in idx_test]
 
-        # TF-IDF + LogReg
-        m = _train_logreg(X_tfidf[idx_train], y_train, steps_lr)
-        results["TF-IDF + LogReg"].append(float(m.accuracy(
-            torch.tensor(X_tfidf[idx_test], dtype=torch.float64),
-            torch.tensor(y_test, dtype=torch.float64).unsqueeze(1)
-        )))
+        # ── Regresión logística ───────────────────────────────────
+        for emb, treatment in [
+            (X_tfidf,     "TF-IDF + LogReg"),
+            (emb_bert,    "BERT + LogReg"),
+            (emb_roberta, "RoBERTa + LogReg"),
+        ]:
+            m = _train_logreg(emb[idx_train], y_train, steps_lr)
+            acc = float(m.accuracy(
+                torch.tensor(emb[idx_test], dtype=torch.float64),
+                torch.tensor(y_test, dtype=torch.float64).unsqueeze(1)
+            ))
+            results[treatment].append(acc)
 
-        # BERT + LogReg
-        m = _train_logreg(emb_bert[idx_train], y_train, steps_lr)
-        results["BERT + LogReg"].append(float(m.accuracy(
-            torch.tensor(emb_bert[idx_test], dtype=torch.float64),
-            torch.tensor(y_test, dtype=torch.float64).unsqueeze(1)
-        )))
-
-        # RoBERTa + LogReg
-        m = _train_logreg(emb_roberta[idx_train], y_train, steps_lr)
-        results["RoBERTa + LogReg"].append(float(m.accuracy(
-            torch.tensor(emb_roberta[idx_test], dtype=torch.float64),
-            torch.tensor(y_test, dtype=torch.float64).unsqueeze(1)
-        )))
-
-        # Zero-shot LLMs
-        for model_key, treatment in [("selectra", "Selectra (zero-shot)"),
-                                      ("bart",     "BART (zero-shot)")]:
-            cfg   = ZERO_MODELS[model_key]
-            preds = classify_batch(zero_clfs[model_key], texts_test, cfg["labels"], cfg["template"])
+        # ── Zero-shot LLMs ────────────────────────────────────────
+        for model_key, treatment in _ZERO_SHOT_KEYS:
+            preds = classify_batch(
+                zero_clfs[model_key], texts_test, model_key=model_key
+            )
             results[treatment].append(float((preds == y_test).mean()))
 
-        # Few-shot (Selectra)
-        for config_key, treatment in _FEWSHOT_CONFIGS:
-            preds = classify_few_shot_batch(fewshot_clfs["selectra"], texts_test,
-                                            model_key="selectra", config_key=config_key)
+        # ── Few-shot LLMs ─────────────────────────────────────────
+        for model_key, config_key, treatment in _FEWSHOT_CONFIGS:
+            preds = classify_few_shot_batch(
+                fewshot_clfs[model_key], texts_test,
+                model_key=model_key, config_key=config_key
+            )
             results[treatment].append(float((preds == y_test).mean()))
 
     print("\n✓ 30 corridas completadas.")
@@ -94,18 +101,19 @@ def run_30_corridas(all_texts, all_labels, X_tfidf, emb_bert, emb_roberta,
 
 
 def print_30_results(results):
-    """Imprime accuracy por corrida y tabla resumen de media y desviación estándar."""
-    n_runs = max(len(v) for v in results.values())
+    """Imprime tabla con accuracy por corrida."""
+    n_runs     = max(len(v) for v in results.values())
     treatments = list(results.keys())
-    col = 10
+    col        = 10
 
-    # Encabezado de corridas
     header = f"{'Corrida':>8s}  " + "  ".join(f"{t[:col]:>{col}s}" for t in treatments)
     print("\n" + "=" * len(header))
     print(header)
     print("=" * len(header))
     for i in range(n_runs):
-        row = f"{i + 1:>8d}  " + "  ".join(f"{results[t][i]:>{col}.4f}" for t in treatments)
+        row = f"{i + 1:>8d}  " + "  ".join(
+            f"{results[t][i]:>{col}.4f}" for t in treatments
+        )
         print(row)
     print("=" * len(header))
 
@@ -126,15 +134,16 @@ def plot_30_results(results, output_path="figures/sec5_30runs_accuracy.png"):
     means  = [np.mean(results[t]) for t in labels]
     stds   = [np.std(results[t])  for t in labels]
 
-    fig, ax = plt.subplots(figsize=(14, 6))
+    fig, ax = plt.subplots(figsize=(16, 6))
     ax.bar(range(len(labels)), means, yerr=stds, capsize=5,
            color='steelblue', alpha=0.8, ecolor='black')
     ax.set_xticks(range(len(labels)))
-    ax.set_xticklabels(labels, rotation=35, ha='right', fontsize=10)
+    ax.set_xticklabels(labels, rotation=40, ha='right', fontsize=9)
     ax.set_ylabel("Accuracy")
     ax.set_title("Accuracy media (30 corridas, 80/20) — todos los tratamientos")
     ax.set_ylim(0, 1.05)
-    ax.axhline(0.5, color='red', linestyle='--', linewidth=1, label='Línea base aleatoria')
+    ax.axhline(0.5, color='red', linestyle='--', linewidth=1,
+               label='Línea base aleatoria')
     ax.legend()
     plt.tight_layout()
     plt.savefig(output_path, dpi=150)
@@ -157,8 +166,8 @@ def friedman_nemenyi(results):
     else:
         print("→ No hay evidencia de diferencias significativas\n")
 
-    data_matrix = np.array([results[t] for t in TREATMENTS]).T  # (30, 8)
-    nemenyi = sp.posthoc_nemenyi_friedman(data_matrix)
+    data_matrix = np.array([results[t] for t in TREATMENTS]).T  # (n_runs, n_treatments)
+    nemenyi     = sp.posthoc_nemenyi_friedman(data_matrix)
     nemenyi.columns = TREATMENTS
     nemenyi.index   = TREATMENTS
 
