@@ -20,9 +20,9 @@ TREATMENTS = [
 ]
 
 _FEWSHOT_CONFIGS = [
-    ("1shot_newline", "Selectra 1-shot"),
-    ("3shot_newline", "Selectra 3-shot"),
-    ("5shot_newline", "Selectra 5-shot"),
+    ("1shot", "Selectra 1-shot"),
+    ("3shot", "Selectra 3-shot"),
+    ("5shot", "Selectra 5-shot"),
 ]
 
 

@@ -23,9 +23,9 @@ FEW_SHOT_EXAMPLES = [
 
 # ── Configuraciones few-shot (del artículo: Tabla 2/3/4) ──────────
 CONFIGS = {
-    "1shot_newline": {"n_shots": 1,  "delimiter": "\n"},
-    "3shot_newline": {"n_shots": 3,  "delimiter": "\n"},
-    "5shot_newline": {"n_shots": 5,  "delimiter": "\n"},
+    "1shot": {"n_shots": 1},
+    "3shot": {"n_shots": 3},
+    "5shot": {"n_shots": 5},
 }
 
 MODELS = {
@@ -42,34 +42,21 @@ MODELS = {
 }
 
 
-def build_few_shot_prompt(text, n_shots, delimiter, lang="es"):
+def _examples_for_label(label, n_shots):
+    """Retorna hasta n_shots ejemplos del label indicado."""
+    return [text for text, lbl in FEW_SHOT_EXAMPLES if lbl == label][:n_shots]
+
+
+def build_hypothesis(label, n_shots, lang):
     """
-    Construye el prompt few-shot siguiendo el formato del artículo
-    (Appendix B). El texto a clasificar va al final sin etiqueta.
+    Construye una hipótesis enriquecida con ejemplos few-shot para el label dado.
+    El modelo NLI puntúa: ¿el texto de entrada implica esta hipótesis?
     """
+    examples = _examples_for_label(label, n_shots)
+    example_str = "; ".join(f'"{e}"' for e in examples)
     if lang == "es":
-        intro = ("Clasifica el siguiente texto como 'simple' o 'complejo'. "
-                 "Responde solo con la etiqueta.")
-        answer_prefix = "Texto:"
-        label_prefix  = "Etiqueta:"
-    else:
-        intro = ("Classify the following text as 'simple' or 'complex'. "
-                 "Return only the label.")
-        answer_prefix = "Text:"
-        label_prefix  = "Label:"
-
-    # Tomar n_shots ejemplos (alternando clases para balance)
-    shots = FEW_SHOT_EXAMPLES[:n_shots * 2]  # 2 por shot (1 simple, 1 complejo)
-    shots = shots[:n_shots]
-
-    lines = [intro]
-    for ejemplo, etiqueta in shots:
-        lines.append(f"{answer_prefix} {ejemplo} -> {label_prefix} {etiqueta}")
-
-    # Texto a clasificar (sin etiqueta — el modelo debe completar)
-    lines.append(f"{answer_prefix} {text} -> {label_prefix}")
-
-    return delimiter.join(lines)
+        return f"Este texto es {label}, similar a: {example_str}."
+    return f"This text is {label}, similar to: {example_str}."
 
 
 def load_few_shot_classifiers(model_keys=None, device=None):
@@ -89,33 +76,29 @@ def load_few_shot_classifiers(model_keys=None, device=None):
 def classify_few_shot_batch(classifier, texts, model_key, config_key,
                              batch_size=32):
     """
-    Clasifica usando el prompt few-shot como hipótesis contextualizada.
-    Sigue la estrategia del artículo: incluir ejemplos en el prompt.
+    Clasifica usando hipótesis enriquecidas con ejemplos few-shot.
+    El texto es la premisa; la hipótesis incluye ejemplos representativos
+    del label, aprovechando correctamente la cabeza NLI del modelo.
     """
-    cfg_model  = MODELS[model_key]
-    cfg_shot   = CONFIGS[config_key]
-    labels     = cfg_model["labels"]
-    lang       = cfg_model["lang"]
-    n_shots    = cfg_shot["n_shots"]
-    delimiter  = cfg_shot["delimiter"]
+    cfg_model = MODELS[model_key]
+    n_shots   = CONFIGS[config_key]["n_shots"]
+    labels    = cfg_model["labels"]
+    lang      = cfg_model["lang"]
 
-    # Construir prompts few-shot para cada texto
-    prompts = [
-        build_few_shot_prompt(t, n_shots, delimiter, lang)
-        for t in texts
-    ]
+    # Una hipótesis enriquecida por label (fija para todo el batch)
+    hypotheses = [build_hypothesis(lbl, n_shots, lang) for lbl in labels]
 
-    dataset = TextDataset(prompts)
+    dataset = TextDataset(texts)
     preds   = []
 
-    template = "{}"  # El prompt ya está completo, la hipótesis ES el prompt
     for i, result in enumerate(classifier(
         dataset,
-        candidate_labels=labels,
-        hypothesis_template="{}",
+        candidate_labels=hypotheses,
         batch_size=batch_size,
     )):
-        preds.append(0 if result["labels"][0] == labels[0] else 1)
+        # Mapear la hipótesis ganadora de vuelta al índice del label
+        winning_hypothesis = result["labels"][0]
+        preds.append(hypotheses.index(winning_hypothesis))
         if i % 500 == 0:
             print(f"  [{config_key}] {i}/{len(texts)} procesados...")
 
@@ -147,14 +130,15 @@ def show_few_shot_examples(classifiers, texts):
         print(f"{'Texto':<40s}  {'Config':<20s}  {'Pred':>10s}")
         print(f"{'='*70}")
         for config_key, cfg_shot in CONFIGS.items():
-            prompts = [
-                build_few_shot_prompt(t, cfg_shot["n_shots"], cfg_shot["delimiter"], cfg_model["lang"])
-                for t in texts
-            ]
-            dataset = TextDataset(prompts)
-            for text, result in zip(texts, clf(dataset, candidate_labels=cfg_model["labels"], hypothesis_template="{}")):
-                row = text[:37] + "..." if len(text) > 40 else text
-                print(f"{row:<40s}  {config_key:<20s}  {result['labels'][0]:>10s}")
+            n_shots    = cfg_shot["n_shots"]
+            hypotheses = [build_hypothesis(lbl, n_shots, cfg_model["lang"])
+                          for lbl in cfg_model["labels"]]
+            dataset = TextDataset(texts)
+            for text, result in zip(texts, clf(dataset, candidate_labels=hypotheses)):
+                winning = result["labels"][0]
+                label   = cfg_model["labels"][hypotheses.index(winning)]
+                row     = text[:37] + "..." if len(text) > 40 else text
+                print(f"{row:<40s}  {config_key:<20s}  {label:>10s}")
         print(f"{'='*70}")
 
 
