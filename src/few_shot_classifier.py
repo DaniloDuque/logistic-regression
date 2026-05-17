@@ -113,7 +113,6 @@ _PROMPT_BUILDERS = {
 # ── Carga de modelos ──────────────────────────────────────────────
 
 def load_few_shot_classifiers(model_keys=None, device=None):
-    """Carga y retorna dict {key: (tokenizer, model, device)}."""
     keys   = model_keys or list(MODELS.keys())
     device = device or ("cuda" if torch.cuda.is_available() else "cpu")
     clfs   = {}
@@ -121,11 +120,12 @@ def load_few_shot_classifiers(model_keys=None, device=None):
         model_id = MODELS[key]["model_id"]
         print(f"Cargando {key} ({model_id})...")
         tokenizer = AutoTokenizer.from_pretrained(model_id)
-        model     = AutoModelForCausalLM.from_pretrained(
-            model_id, torch_dtype=torch.float16
-        ).to(device)
+        tokenizer.padding_side = "left"           # ← mismo fix
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id, torch_dtype=torch.float16
+        ).to(device)
         model.eval()
         clfs[key] = (tokenizer, model, device)
     return clfs
