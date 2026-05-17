@@ -47,11 +47,12 @@ def load_classifiers(model_keys=None, device=None):
         model_id = MODELS[key]["model_id"]
         print(f"Cargando {key} ({model_id})...")
         tokenizer = AutoTokenizer.from_pretrained(model_id)
-        model     = AutoModelForCausalLM.from_pretrained(
-            model_id, torch_dtype=torch.float16
-        ).to(device)
+        tokenizer.padding_side = "left"           # ← fix: decoder-only requiere left-padding
         if tokenizer.pad_token is None:
             tokenizer.pad_token = tokenizer.eos_token
+        model = AutoModelForCausalLM.from_pretrained(
+            model_id, torch_dtype=torch.float16
+        ).to(device)
         model.eval()
         clfs[key] = (tokenizer, model, device)
     return clfs
